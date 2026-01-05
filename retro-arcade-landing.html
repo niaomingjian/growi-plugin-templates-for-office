@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Replay | Retro Arcade Emporium</title>
+  <style>
+    /* Reset & Base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(circle at 20% 20%, #1d1a2f 0%, #0a0815 55%, #05040d 100%);
+      color: #e3e0ff;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* Glow helpers */
+    .neon {
+      text-shadow: 0 0 12px rgba(255, 66, 185, 0.7), 0 0 24px rgba(0, 191, 255, 0.6);
+    }
+    .scanline::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.05) 0px,
+        rgba(255, 255, 255, 0.05) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    header {
+      position: relative;
+      overflow: hidden;
+      padding: 48px 24px 80px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 15% 10%, rgba(255, 59, 203, 0.3), transparent 40%),
+                  radial-gradient(circle at 85% 0%, rgba(0, 200, 255, 0.35), transparent 38%);
+      filter: blur(4px);
+      opacity: 0.9;
+    }
+    .nav {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.3rem;
+      letter-spacing: 0.12em;
+    }
+    .logo span {
+      padding: 6px 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      background: rgba(8, 5, 20, 0.7);
+      box-shadow: 0 0 12px rgba(255, 66, 185, 0.4);
+    }
+    .nav ul { display: flex; gap: 24px; list-style: none; }
+    .nav a { position: relative; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .nav a::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -6px;
+      height: 2px;
+      background: linear-gradient(90deg, #ff42b9, #00c8ff);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease-out;
+    }
+    .nav a:hover::after { transform: scaleX(1); }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 32px;
+      align-items: center;
+      z-index: 1;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.4rem, 4vw, 3.6rem);
+      margin-bottom: 16px;
+      letter-spacing: 0.08em;
+    }
+    .hero-copy p { max-width: 520px; color: #c7c4e8; margin-bottom: 22px; }
+    .badges { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 26px; }
+    .badge {
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.82rem;
+    }
+    .cta-row { display: flex; gap: 16px; align-items: center; }
+    .btn {
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: linear-gradient(120deg, rgba(255, 66, 185, 0.9), rgba(0, 200, 255, 0.9));
+      color: #0a0815;
+      box-shadow: 0 10px 30px rgba(255, 66, 185, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 34px rgba(0, 200, 255, 0.35); }
+    .ghost {
+      background: rgba(255,255,255,0.05);
+      color: #e3e0ff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
+
+    .crt-card {
+      position: relative;
+      background: radial-gradient(circle at 50% 35%, rgba(0, 255, 170, 0.12), rgba(3, 4, 14, 0.9));
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 14px;
+      padding: 28px;
+      overflow: hidden;
+      box-shadow: 0 15px 45px rgba(0,0,0,0.55);
+    }
+    .crt-card .grid-lines::before,
+    .crt-card .grid-lines::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, rgba(0,200,255,0.08) 0 1px, transparent 1px 40px),
+                  repeating-linear-gradient(0deg, rgba(0,200,255,0.08) 0 1px, transparent 1px 40px);
+      mix-blend-mode: color-dodge;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .crt-card img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    /* Sections */
+    section { padding: 64px 24px; position: relative; }
+    .section-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
+    .section-title h2 { letter-spacing: 0.08em; font-size: 1.4rem; }
+    .section-title .bar {
+      height: 2px; flex: 1; background: linear-gradient(90deg, #ff42b9, transparent);
+      box-shadow: 0 0 10px rgba(255,66,185,0.5);
+    }
+
+    .grid { display: grid; gap: 20px; }
+    .catalog { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .card {
+      position: relative;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      overflow: hidden;
+    }
+    .card:hover { transform: translateY(-6px); border-color: rgba(0, 200, 255, 0.35); }
+    .card h3 { margin-bottom: 6px; letter-spacing: 0.06em; }
+    .tag { font-size: 0.75rem; letter-spacing: 0.08em; color: #9ae8ff; }
+    .price { color: #ff9ff7; font-weight: 700; margin-top: 10px; }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255,66,185,0.12), transparent 50%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .card:hover::before { opacity: 1; }
+
+    .features { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .feature {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: 12px;
+    }
+    .feature-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(255,66,185,0.25), rgba(0,200,255,0.25));
+      box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+    }
+
+    .cta-panel {
+      margin-top: 32px;
+      padding: 24px;
+      border-radius: 12px;
+      background: linear-gradient(120deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    footer {
+      padding: 36px 24px 60px;
+      background: #05040d;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: #9a97b9;
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .nav { flex-direction: column; gap: 16px; }
+      .nav ul { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <header class="scanline">
+    <div class="nav">
+      <div class="logo neon"><span>NEON</span>REPLAY</div>
+      <ul>
+        <li><a href="#catalog">Catalog</a></li>
+        <li><a href="#deals">Bundles</a></li>
+        <li><a href="#features">Why Us</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div class="hero">
+      <div class="hero-copy">
+        <h1 class="neon">Retro Games, Noir Nights.</h1>
+        <p>Step into a smoky neon arcade where 8-bit legends, pixel-perfect gear, and synthwave exclusives wait behind a velvet rope. Collectors, speedrunners, and high-score hunters welcome.</p>
+        <div class="badges">
+          <span class="badge">Original Cartridges</span>
+          <span class="badge">Arcade Cabinets</span>
+          <span class="badge">Limited Vinyl OST</span>
+        </div>
+        <div class="cta-row">
+          <a class="btn" href="#catalog">Shop the vault</a>
+          <a class="btn ghost" href="#deals">Build a noir bundle</a>
+        </div>
+      </div>
+      <div class="crt-card">
+        <div class="grid-lines"></div>
+        <img src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80" alt="Retro arcade cabinet glowing in neon" />
+      </div>
+    </div>
+  </header>
+
+  <section id="catalog">
+    <div class="section-title">
+      <h2 class="neon">Spotlight Catalog</h2>
+      <div class="bar"></div>
+    </div>
+    <div class="grid catalog">
+      <article class="card">
+        <div class="tag">Arcade • 1987</div>
+        <h3>Night City Racer Cabinet</h3>
+        <p>Refurbished with amber CRT glow, new sticks, and authentic coin door.</p>
+        <div class="price">$4,250</div>
+      </article>
+      <article class="card">
+        <div class="tag">Console • SNES</div>
+        <h3>Shadow Streets Limited</h3>
+        <p>Boxed set with holo sleeve, Japanese manual, and noir poster.</p>
+        <div class="price">$349</div>
+      </article>
+      <article class="card">
+        <div class="tag">Merch • Vinyl</div>
+        <h3>Neon Noir OST</h3>
+        <p>180g smoky-clear vinyl, gatefold art, and synthwave liner notes.</p>
+        <div class="price">$48</div>
+      </article>
+      <article class="card">
+        <div class="tag">Hardware • Mod</div>
+        <h3>Photon Glow Controller</h3>
+        <p>Hall-effect sticks, ultraviolet cables, and cyan underglow strip.</p>
+        <div class="price">$129</div>
+      </article>
+    </div>
+  </section>
+
+  <section id="deals">
+    <div class="section-title">
+      <h2 class="neon">Noir Bundles</h2>
+      <div class="bar"></div>
+    </div>
+    <div class="cta-panel">
+      <div>
+        <h3>Arcade After-Hours</h3>
+        <p>Pick any cabinet, add two controllers, and a vinyl OST — get 12% off plus a neon token roll.</p>
+      </div>
+      <a class="btn" href="#contact">Claim offer</a>
+    </div>
+    <div class="cta-panel">
+      <div>
+        <h3>Collector's Noir Stack</h3>
+        <p>Three retro titles + glass display case + maintenance kit. Limited to 50 stacks this month.</p>
+      </div>
+      <a class="btn ghost" href="#contact">Reserve</a>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-title">
+      <h2 class="neon">Why Neon Replay?</h2>
+      <div class="bar"></div>
+    </div>
+    <div class="grid features">
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <div>
+          <h3>Tested on Real Hardware</h3>
+          <p>Every cart and cabinet is bench-tested, CRT-calibrated, and tuned for scanline sweetness.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🛰</div>
+        <div>
+          <h3>Global Sourcing</h3>
+          <p>From Akihabara back alleys to Midwest arcades, we track provenance and condition reports.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🕶</div>
+        <div>
+          <h3>VIP Night Drop</h3>
+          <p>Members get midnight restocks, noir mixtapes, and concierge repair windows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="section-title">
+      <h2 class="neon">Step Behind the Curtain</h2>
+      <div class="bar"></div>
+    </div>
+    <div class="cta-panel">
+      <div>
+        <h3>Book a Private Tour</h3>
+        <p>Schedule a video walk-through of our vault or reserve a cabinet test slot at the lounge.</p>
+      </div>
+      <a class="btn" href="mailto:hello@neonreplay.com">Email the curator</a>
+    </div>
+    <div class="cta-panel">
+      <div>
+        <h3>Join the Night Shift</h3>
+        <p>Subscribe for noir drops, limited pressings, and after-hours leaderboard invites.</p>
+      </div>
+      <a class="btn ghost" href="#">Subscribe</a>
+    </div>
+  </section>
+
+  <footer>
+    Neon Replay • Retro arcade emporium in perpetual neon dusk. Est. 20XX.
+  </footer>
+</body>
+</html>
